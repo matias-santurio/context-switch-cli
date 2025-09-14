@@ -1,0 +1,33 @@
+{
+  "name": "context-switch-cli",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "type": "module",
+  "bin": {
+    "dancing-cat": "./index.ts"
+  },
+  "scripts": {
+    "start": "tsx index.ts",
+    "dev": "tsx watch index.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "format": "biome format . --write",
+    "check": "biome check .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "ink": "^6.3.0",
+    "react": "^19.1.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^24.3.1",
+    "@types/react": "^19.1.12",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
