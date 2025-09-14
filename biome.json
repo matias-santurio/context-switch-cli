@@ -26,7 +26,8 @@
 				"noUndeclaredVariables": "off"
 			},
 			"style": {
-				"all": true
+				"all": true,
+				"noNonNullAssertion": "off"
 			},
 			"complexity": {
 				"all": true,
@@ -45,7 +46,8 @@
 			"nursery": {
 				"all": true,
 				"useComponentExportOnlyModules": "off",
-                "useExplicitType": "off"
+                "useExplicitType": "off",
+				"useImportRestrictions": "off"
 			}
 		}
 	},
