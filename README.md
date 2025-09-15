@@ -34,7 +34,4 @@ npm run dev
 
 # Build
 npm run build
-
-# Test locally
-npm install -g .
 ```
