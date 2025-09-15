@@ -4,6 +4,7 @@ import { CustomSelect } from './CtxSelect.js';
 import { GuideText } from './GuideText.js';
 import { useState } from 'react';
 import { TextInput } from './TextInput.js';
+import { assertUnreachable } from './utils.js';
 
 type Option = {
 	value: string;
@@ -29,35 +30,53 @@ const ALL_OPTIONS = [
 ];
 
 const App = () => {
-	const [options, setOptions] = useState<Option[]>(ALL_OPTIONS.map((opt) => ({ ...opt, state: 'active' as const })));
+	const [options, _setOptions] = useState<Option[]>(ALL_OPTIONS.map((opt) => ({ ...opt, state: 'active' })));
 	const [undoStack, setUndoStack] = useState<ActionPatch[]>([]);
+	const [redoStack, setRedoStack] = useState<ActionPatch[]>([]);
 	const [isAdding, setIsAdding] = useState(false);
 	const [newValue, setNewValue] = useState('');
 
+	const updateOption = (value: string, updater: (v: Option) => Option) => {
+		_setOptions((currentOptions) => currentOptions.map((opt) => (opt.value === value ? updater(opt) : opt)));
+	}
+
+	const addOption = (opt: Option, index?: number) => {
+		if (index === undefined) {
+			_setOptions((currentOptions) => [...currentOptions, opt]);
+		} else {
+			_setOptions((currentOptions) => {
+				const newOptions = [...currentOptions];
+				newOptions.splice(index, 0, opt);
+				return newOptions;
+			});
+		}
+	}
+
+	const removeOption = (value: string) => {
+		_setOptions((currentOptions) => currentOptions.filter((opt) => opt.value !== value));
+	}
+
 	const executeAction = (patch: ActionPatch) => {
+		// Clear redo stack when performing new action
+		setRedoStack([]);
 		setUndoStack((prevStack) => [...prevStack, patch]);
-		setOptions((currentOptions) => {
-			switch (patch.type) {
-				case 'ADD': {
-					return [...currentOptions, { value: patch.value, state: 'active' as const }];
-				}
-				case 'COMPLETE': {
-					return currentOptions.map((opt) =>
-						opt.value === patch.value ? { ...opt, state: 'crossed' as const } : opt
-					);
-				}
-				case 'UNCOMPLETE': {
-					return currentOptions.map((opt) =>
-						opt.value === patch.value ? { ...opt, state: 'active' as const } : opt
-					);
-				}
-				case 'REMOVE': {
-					return currentOptions.filter((opt) => opt.value !== patch.value);
-				}
-				default:
-					return currentOptions;
+		switch (patch.type) {
+			case 'ADD': {
+				return addOption({ value: patch.value, state: 'active' });
 			}
-		});
+			case 'COMPLETE': {
+				return updateOption(patch.value, (v) => ({ ...v, state: 'crossed' }));
+			}
+			case 'UNCOMPLETE': {
+				return updateOption(patch.value, (v) => ({ ...v, state: 'active' }));
+			}
+			case 'REMOVE': {
+				return removeOption(patch.value);
+			}
+			default: {
+				assertUnreachable(patch);
+			}
+		}
 	};
 
 	const executeRemove = (value: string) => {
@@ -82,44 +101,63 @@ const App = () => {
 		}
 
 		const lastPatch = undoStack.at(-1)!;
-		setOptions((currentOptions) => {
-			switch (lastPatch.type) {
-				case 'ADD': {
-					// Undo ADD: remove the added item
-					return currentOptions.filter((opt) => opt.value !== lastPatch.value);
-				}
-				case 'COMPLETE': {
-					// Undo COMPLETE: change back to active
-					return currentOptions.map((opt) =>
-						opt.value === lastPatch.value ? { ...opt, state: 'active' as const } : opt
-					);
-				}
-				case 'UNCOMPLETE': {
-					// Undo UNCOMPLETE: change back to crossed
-					return currentOptions.map((opt) =>
-						opt.value === lastPatch.value ? { ...opt, state: 'crossed' as const } : opt
-					);
-				}
-				case 'REMOVE': {
-					// Undo REMOVE: restore the item at its original index
-					const newOptions = [...currentOptions];
-					newOptions.splice(lastPatch.index, 0, {
-						value: lastPatch.value,
-						state: lastPatch.previousState
-					});
-					return newOptions;
-				}
-				default:
-					return currentOptions;
-			}
-		});
 		setUndoStack((prevStack) => prevStack.slice(0, -1));
+		setRedoStack((prevStack) => [...prevStack, lastPatch]);
+		switch (lastPatch.type) {
+			case 'ADD': {
+				// Undo ADD: remove the added item
+				return removeOption(lastPatch.value);
+			}
+			case 'COMPLETE': {
+				// Undo COMPLETE: change back to active
+				return updateOption(lastPatch.value, (v) => ({ ...v, state: 'active' }));
+			}
+			case 'UNCOMPLETE': {
+				// Undo UNCOMPLETE: change back to crossed
+				return updateOption(lastPatch.value, (v) => ({ ...v, state: 'crossed' }));
+			}
+			case 'REMOVE': {
+				// Undo REMOVE: restore the item at its original index
+				return addOption({ value: lastPatch.value, state: lastPatch.previousState }, lastPatch.index);
+			}
+			default: {
+				assertUnreachable(lastPatch);
+			}
+		}
+	};
+
+	const handleRedo = () => {
+		if (redoStack.length === 0) {
+			return;
+		}
+
+		const patchToRedo = redoStack.at(-1)!;
+		setRedoStack((prevStack) => prevStack.slice(0, -1));
+		setUndoStack((prevStack) => [...prevStack, patchToRedo]);
+		switch (patchToRedo.type) {
+			case 'ADD': {
+				return addOption({ value: patchToRedo.value, state: 'active' });
+			}
+			case 'COMPLETE': {
+				return updateOption(patchToRedo.value, (v) => ({ ...v, state: 'crossed' }));
+			}
+			case 'UNCOMPLETE': {
+				return updateOption(patchToRedo.value, (v) => ({ ...v, state: 'active' }));
+			}
+			case 'REMOVE': {
+				return removeOption(patchToRedo.value);
+			}
+			default: {
+				assertUnreachable(patchToRedo);
+			}
+		}
 	};
 
 	const guideActions = [
 		{ name: 'Add', key: 'A' },
 		{ name: 'Complete/Remove', key: 'Del' },
-		{ name: 'Undo', key: 'Z' }
+		{ name: 'Undo', key: 'Z' },
+		{ name: 'Redo', key: 'Y' }
 	];
 
 	useInput(
@@ -137,9 +175,10 @@ const App = () => {
 		(input) => {
 			if (input === 'a' || input === 'A') {
 				setIsAdding(true);
-			}
-			if (input === 'z' || input === 'Z') {
+			} else if (input === 'z' || input === 'Z') {
 				handleUndo();
+			} else if (input === 'y' || input === 'Y') {
+				handleRedo();
 			}
 		},
 		{ isActive: !isAdding },
