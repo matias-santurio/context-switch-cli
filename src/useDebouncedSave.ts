@@ -29,12 +29,17 @@ export const useDebouncedSave = (options: Item[], delay = 3000) => {
 		};
 	}, [options, delay]);
 
-	// Clean up on unmount
+	// Save on unmount (app close)
 	useEffect(() => {
 		return () => {
 			if (timeoutRef.current) {
 				clearTimeout(timeoutRef.current);
 			}
+
+			// Save immediately when unmounting if there are options
+			if (options.length > 0) {
+				saveOptions(options);
+			}
 		};
-	}, []);
+	}, [options]);
 }
