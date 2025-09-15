@@ -1,13 +1,17 @@
 {
   "name": "context-switch-cli",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.ts",
+  "version": "0.1.0",
+  "description": "CLI-based to-do list for probably-overworked nerds.",
+  "main": "dist/index.js",
   "type": "module",
   "bin": {
-    "dancing-cat": "./index.ts"
+    "ctx-switch": "./dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "build": "tsc",
     "start": "tsx index.ts",
     "dev": "tsx watch index.ts",
     "typecheck": "tsc --noEmit",

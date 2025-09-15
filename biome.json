@@ -24,7 +24,8 @@
 				"all": true,
 				"useExhaustiveDependencies": "off",
 				"noUndeclaredVariables": "off",
-				"noNodejsModules": "off"
+				"noNodejsModules": "off",
+				"useImportExtensions": "off"
 			},
 			"style": {
 				"all": true,
