@@ -23,11 +23,13 @@
 			"correctness": {
 				"all": true,
 				"useExhaustiveDependencies": "off",
-				"noUndeclaredVariables": "off"
+				"noUndeclaredVariables": "off",
+				"noNodejsModules": "off"
 			},
 			"style": {
 				"all": true,
-				"noNonNullAssertion": "off"
+				"noNonNullAssertion": "off",
+				"useFilenamingConvention": "off"
 			},
 			"complexity": {
 				"all": true,

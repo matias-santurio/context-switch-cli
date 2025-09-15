@@ -2,14 +2,12 @@
 import { Box, render, useInput, type Key } from 'ink';
 import { CustomSelect } from './CtxSelect.js';
 import { GuideText } from './GuideText.js';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TextInput } from './TextInput.js';
 import { assertUnreachable } from './utils.js';
-
-type Option = {
-	value: string;
-	state: 'active' | 'crossed';
-};
+import { loadOptions } from './persistence.js';
+import { useDebouncedSave } from './useDebouncedSave.js';
+import type { Item } from './types.js';
 
 type ActionPatch =
 	| { type: 'ADD'; value: string }
@@ -17,30 +15,30 @@ type ActionPatch =
 	| { type: 'UNCOMPLETE'; value: string }
 	| { type: 'REMOVE'; value: string; previousState: 'active' | 'crossed'; index: number };
 
-const ALL_OPTIONS = [
-	{
-		value: 'START',
-	},
-	{
-		value: 'EXIT',
-	},
-	{
-		value: 'SETTINGS',
-	},
-];
+// Removed - now using persisted options
 
 const App = () => {
-	const [options, _setOptions] = useState<Option[]>(ALL_OPTIONS.map((opt) => ({ ...opt, state: 'active' })));
+	const [options, _setOptions] = useState<Item[]>([]);
 	const [undoStack, setUndoStack] = useState<ActionPatch[]>([]);
 	const [redoStack, setRedoStack] = useState<ActionPatch[]>([]);
 	const [isAdding, setIsAdding] = useState(false);
 	const [newValue, setNewValue] = useState('');
 
-	const updateOption = (value: string, updater: (v: Option) => Option) => {
+	// Load persisted options on startup
+	useEffect(() => {
+		loadOptions().then((loadedOptions) => {
+			_setOptions(loadedOptions);
+		});
+	}, []);
+
+	// Auto-save options with debouncing
+	useDebouncedSave(options);
+
+	const updateOption = (value: string, updater: (v: Item) => Item) => {
 		_setOptions((currentOptions) => currentOptions.map((opt) => (opt.value === value ? updater(opt) : opt)));
 	}
 
-	const addOption = (opt: Option, index?: number) => {
+	const addOption = (opt: Item, index?: number) => {
 		if (index === undefined) {
 			_setOptions((currentOptions) => [...currentOptions, opt]);
 		} else {
